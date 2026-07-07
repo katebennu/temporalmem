@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+import argparse
+from datetime import datetime
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(prog="temporalmem", description="Temporal knowledge-graph memory")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    sub.add_parser("setup-db", help="Create Neo4j constraints and indexes (idempotent)")
+
+    ingest = sub.add_parser("ingest", help="Ingest a LongMemEval dataset into the graph")
+    ingest.add_argument("--data", required=True, help="Path to a LongMemEval JSON file")
+    ingest.add_argument("--question-id", action="append", help="Limit to specific question id(s)")
+    ingest.add_argument("--dry-run", action="store_true", help="Print extractions without writing")
+
+    search = sub.add_parser("search", help="Query the memory graph directly")
+    search.add_argument("--query", required=True)
+    search.add_argument("--as-of", help="ISO date for point-in-time retrieval")
+    search.add_argument("--limit", type=int, default=10)
+
+    ask = sub.add_parser("ask", help="Ask the memory agent a question")
+    ask.add_argument("--question", required=True)
+    ask.add_argument("--date", help="ISO question date for temporal reasoning")
+
+    run = sub.add_parser("eval", help="Run the LongMemEval harness")
+    run.add_argument("--data", required=True)
+    run.add_argument("--limit", type=int, help="Number of questions to run")
+    run.add_argument("--question-id", action="append")
+    run.add_argument("--out", default="results/run.json")
+    run.add_argument("--skip-ingest", action="store_true")
+
+    score = sub.add_parser("score", help="Judge and report a results file")
+    score.add_argument("--data", required=True)
+    score.add_argument("--out", default="results/run.json")
+
+    args = parser.parse_args()
+    handler = {
+        "setup-db": _setup_db,
+        "ingest": _ingest,
+        "search": _search,
+        "ask": _ask,
+        "eval": _eval,
+        "score": _score,
+    }[args.command]
+    handler(args)
+
+
+def _setup_db(args) -> None:
+    from .graph import GraphClient, setup_schema
+
+    with GraphClient() as graph:
+        setup_schema(graph)
+    print("schema ready")
+
+
+def _ingest(args) -> None:
+    from .graph import GraphClient
+    from .ingest import Ingestor
+    from .sources import LongMemEvalSource
+
+    question_ids = set(args.question_id) if args.question_id else None
+    source = LongMemEvalSource(args.data, question_ids)
+    with GraphClient() as graph:
+        count = Ingestor(graph).ingest(source, dry_run=args.dry_run)
+    print(f"processed {count} episodes")
+
+
+def _search(args) -> None:
+    from .graph import GraphClient
+    from .retrieval import MemorySearch
+
+    as_of = datetime.fromisoformat(args.as_of) if args.as_of else None
+    with GraphClient() as graph:
+        results = MemorySearch(graph).search(args.query, as_of=as_of, limit=args.limit)
+    for result in results:
+        print(f"[{result.score:.4f}] ({result.via}) {result.fact}")
+        print(f"          valid {result.valid_at} to {result.invalid_at or 'present'}")
+
+
+def _ask(args) -> None:
+    from .agent import MemoryAgent
+    from .graph import GraphClient
+
+    date = datetime.fromisoformat(args.date) if args.date else None
+    with GraphClient() as graph:
+        print(MemoryAgent(graph).answer(args.question, question_date=date))
+
+
+def _eval(args) -> None:
+    from .evaluation import EvalHarness
+    from .graph import GraphClient
+
+    question_ids = set(args.question_id) if args.question_id else None
+    with GraphClient() as graph:
+        harness = EvalHarness(args.data, graph, out_path=args.out)
+        harness.run(limit=args.limit, question_ids=question_ids, skip_ingest=args.skip_ingest)
+
+
+def _score(args) -> None:
+    from .evaluation import EvalHarness
+    from .graph import GraphClient
+
+    with GraphClient() as graph:
+        EvalHarness(args.data, graph, out_path=args.out).score()
+
+
+if __name__ == "__main__":
+    main()

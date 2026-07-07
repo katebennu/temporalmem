@@ -1,0 +1,33 @@
+schema: spec-driven
+
+context: |
+  Project: temporalmem — a local-first agentic memory system backed by a temporal
+  knowledge graph in Neo4j, evaluated on the LongMemEval benchmark.
+
+  Tech stack:
+  - Python 3.12, uv for dependency management, src layout (src/temporalmem/)
+  - Neo4j 5 (Docker) as the single store: graph + native vector index + full-text index
+  - Anthropic API: claude-haiku-4-5 for extraction (Batches API for bulk ingestion),
+    claude-opus-4-8 for the answering agent
+  - sentence-transformers (BAAI/bge-small-en-v1.5, 384 dims) for local embeddings
+  - pydantic for extraction schemas (structured outputs via client.messages.parse)
+
+  Architecture principles:
+  - Episode sources are pluggable behind the EpisodeSource protocol
+    (LongMemEval adapter first; personal transcripts later).
+  - Facts are relationships with bi-temporal validity (valid_at / invalid_at);
+    contradictions invalidate old facts, never delete them.
+  - Retrieval is hybrid: vector + full-text fused with reciprocal rank fusion,
+    then 1–2 hop graph expansion from top entity hits.
+  - Everything runs locally except Anthropic API calls.
+
+  Conventions:
+  - Standard readable Python: descriptive names, type hints, docstrings where
+    behavior isn't obvious. Tests with pytest in tests/.
+
+rules:
+  proposal:
+    - Keep proposals under 400 words
+    - Include a "Non-goals" section
+  tasks:
+    - Group tasks by milestone; each task completable in under 2 hours
