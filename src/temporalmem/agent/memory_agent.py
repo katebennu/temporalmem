@@ -110,10 +110,22 @@ class MemoryAgent:
         question_date: datetime | None = None,
         max_iterations: int = 8,
     ) -> str:
+        text, _ = self.answer_traced(question, question_date, max_iterations)
+        return text
+
+    def answer_traced(
+        self,
+        question: str,
+        question_date: datetime | None = None,
+        max_iterations: int = 8,
+    ) -> tuple[str, list[dict]]:
+        """Answer and also return the tool trace: one dict per tool call
+        with the tool name, its input, and the text the agent saw back."""
         prompt = question
         if question_date is not None:
             prompt = f"Question date: {question_date.isoformat()}\n\nQuestion: {question}"
         messages: list[dict] = [{"role": "user", "content": prompt}]
+        trace: list[dict] = []
 
         response = None
         for _ in range(max_iterations):
@@ -127,20 +139,21 @@ class MemoryAgent:
             if response.stop_reason != "tool_use":
                 break
             messages.append({"role": "assistant", "content": response.content})
-            tool_results = [
-                {
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": self._run_tool(block.name, block.input),
-                }
-                for block in response.content
-                if block.type == "tool_use"
-            ]
+            tool_results = []
+            for block in response.content:
+                if block.type != "tool_use":
+                    continue
+                output = self._run_tool(block.name, block.input)
+                trace.append({"tool": block.name, "input": dict(block.input), "output": output})
+                tool_results.append(
+                    {"type": "tool_result", "tool_use_id": block.id, "content": output}
+                )
             messages.append({"role": "user", "content": tool_results})
 
         if response is None:
-            return ""
-        return "\n".join(block.text for block in response.content if block.type == "text")
+            return "", trace
+        text = "\n".join(block.text for block in response.content if block.type == "text")
+        return text, trace
 
     def _run_tool(self, name: str, tool_input: dict) -> str:
         if name == "search_memory":

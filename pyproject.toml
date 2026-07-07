@@ -17,6 +17,11 @@ dev = [
     "pytest>=8",
     "ruff>=0.6",
 ]
+ui = [
+    "streamlit>=1.40",
+    "plotly>=5.24",
+    "pandas>=2.2",
+]
 
 [project.scripts]
 temporalmem = "temporalmem.cli:main"
