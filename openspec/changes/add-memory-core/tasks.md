@@ -20,7 +20,8 @@
 - [ ] 2.6 Batches API path for bulk ingestion (50% cost); keep sync path for --dry-run
 - [ ] 2.7 LLM tie-break for entity resolution when embedding similarity is near threshold
 - [x] 2.8 Extraction pass 2: dated events (attended / participated_in / started_working_at / started_working_with + valid_at) — participation and employment-start dates were the missing facts in eval run 1
-- [ ] 2.9 Entity resolution over-merge found in run 2: "HP Pavilion desktop" resolved to the "Dell XPS 13" node at threshold 0.85 (product names are embedding-dense) — restrict vector match to same entity_type and/or raise threshold; feeds 2.7
+- [ ] 2.9 Extraction pass 3 (ablation finding): assistant-side facts under-captured — single-session-assistant scored 0.4 in every ablation arm; extraction prompt focuses on "the user's world" and drops information the assistant provided
+- [ ] 2.10 Entity resolution over-merge found in run 2: "HP Pavilion desktop" resolved to the "Dell XPS 13" node at threshold 0.85 (product names are embedding-dense) — restrict vector match to same entity_type and/or raise threshold; feeds 2.7
 
 ## 3. Milestone 2 — Retrieval & agent
 
