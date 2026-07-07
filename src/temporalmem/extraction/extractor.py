@@ -17,8 +17,14 @@ Rules:
   ISO dates, both in the fact sentence and in valid_at.
 - Predicates: snake_case, present tense, and consistent — reuse the same predicate for the
   same kind of relation every time. Prefer this canonical set when it fits: owns, lives_in,
-  works_at, purchased_from, plans_trip_to, plans_to_visit, visited, attended, prefers,
-  likes, dislikes, has_skill, has_goal, related_to.
+  works_at, purchased_from, plans_trip_to, plans_to_visit, visited, attended,
+  participated_in, started_working_at, started_working_with, prefers, likes, dislikes,
+  has_skill, has_goal, related_to.
+- Extract dated life events as individual facts — one per event, with valid_at set to the
+  event's date: attended/participated_in for events and activities, visited for places,
+  started_working_at / started_working_with for jobs, projects, and collaborations.
+  Capture start dates and first occurrences explicitly whenever mentioned; questions like
+  "how long", "how many before X", and "which came first" depend on them.
 - Objects must be entity names (people, places, organizations, products, events) — never
   dates, amounts, or adverbs. Put WHEN into valid_at and the details into the fact sentence.
   For acquisition or state-change events (purchases, moves, job changes), valid_at is the

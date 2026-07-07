@@ -17,7 +17,10 @@ SYSTEM_PROMPT = """You answer questions about a user's chat history using a long
 - The question date is provided. Resolve relative time expressions ("last month") against it.
 - Facts carry validity windows (valid_at / invalid_at). Prefer facts valid at the time the
   question asks about; use as_of when the question targets a specific time.
-- If facts are ambiguous, use inspect_episodes to read the underlying transcripts.
+- If the retrieved facts lack a detail the question needs — a date, a count, a duration,
+  a starting point — you MUST call inspect_episodes on the source episodes of the closest
+  facts and read the transcripts before concluding the information is missing. Only state
+  that the history lacks the information after inspecting the most relevant episodes.
 - Give a direct, concise final answer."""
 
 TOOLS = [
@@ -43,8 +46,10 @@ TOOLS = [
     {
         "name": "inspect_episodes",
         "description": (
-            "Fetch the raw transcript text of episodes by id. Use when retrieved facts are "
-            "insufficient or ambiguous and you need the original wording."
+            "Fetch the raw transcript text of episodes by id. Call this whenever the retrieved "
+            "facts are missing a detail the question needs (a date, a count, a duration, a start "
+            "point) or are ambiguous — the transcripts often contain details the facts do not. "
+            "Do this before concluding that information is not in the history."
         ),
         "input_schema": {
             "type": "object",
