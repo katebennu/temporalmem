@@ -19,6 +19,7 @@
 - [x] 2.5 Verify ingestion end-to-end against one real LongMemEval haystack (oracle gpt4_2312f94c: idempotent re-ingest skips, entity resolution merges across sessions, all owns facts coexist with purchase dates in valid_at; search + agent answer matches gold). Found and fixed a `query` parameter-name collision in GraphClient.run.
 - [ ] 2.6 Batches API path for bulk ingestion (50% cost); keep sync path for --dry-run
 - [ ] 2.7 LLM tie-break for entity resolution when embedding similarity is near threshold
+- [ ] 2.8 Extraction pass 2: dated events (attended / started_working_at + valid_at) — participation and employment-start dates were the missing facts in eval run 1
 
 ## 3. Milestone 2 — Retrieval & agent
 
@@ -27,6 +28,7 @@
 - [x] 3.3 Memory agent (claude-opus-4-8) with search_memory + inspect_episodes tool loop
 - [ ] 3.4 Validate retrieval quality on the oracle variant: answer-session recall@k before agent quality
 - [ ] 3.5 Tune expansion hops/decay and search limits against a 20-question subset
+- [ ] 3.6 Agent prompt: explicit inspect_episodes trigger when facts lack a needed detail (all 3 misses in run 1 had the answer in raw episode text, agent never inspected)
 
 ## 4. Milestone 3 — Evaluation
 
@@ -35,6 +37,8 @@
 - [ ] 4.3 Naive vector-RAG baseline behind the same backend interface (spec: evaluation / Baseline comparison)
 - [ ] 4.4 Record token usage per run for cost tracking
 - [ ] 4.5 Full A/B report: graph memory vs baseline on a fixed subset, per question type
+- [ ] 4.6 Stratified --sample flag for eval (oracle file is grouped by type; --limit N takes only temporal-reasoning)
+- [ ] 4.7 Re-run the same 20 questions after 2.8 + 3.6 (fresh --out) and compare against run 1 baseline: 0.85 overall (17/20, temporal-reasoning, oracle)
 
 ## 5. Wrap-up
 
