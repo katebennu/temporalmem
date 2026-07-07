@@ -16,7 +16,7 @@
 - [x] 2.2 Ingestor: episode → extraction → entity resolution → graph writes, idempotent, --dry-run
 - [x] 2.3 Contradiction invalidation (same subject+predicate, different object → set invalid_at)
 - [x] 2.4 Extraction quality pass 1 (from oracle dry-run findings): canonical predicate vocabulary, no date/literal objects, valid_at for acquisition events, functional flag gating invalidation, valid_at shown in --dry-run
-- [ ] 2.5 Verify ingestion end-to-end against one real LongMemEval haystack; eyeball graph in Neo4j Browser; keep iterating on extraction prompt using the oracle variant
+- [x] 2.5 Verify ingestion end-to-end against one real LongMemEval haystack (oracle gpt4_2312f94c: idempotent re-ingest skips, entity resolution merges across sessions, all owns facts coexist with purchase dates in valid_at; search + agent answer matches gold). Found and fixed a `query` parameter-name collision in GraphClient.run.
 - [ ] 2.6 Batches API path for bulk ingestion (50% cost); keep sync path for --dry-run
 - [ ] 2.7 LLM tie-break for entity resolution when embedding similarity is near threshold
 

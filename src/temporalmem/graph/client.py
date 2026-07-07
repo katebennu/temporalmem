@@ -14,9 +14,9 @@ class GraphClient:
     ):
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
 
-    def run(self, query: str, **params) -> list[dict]:
+    def run(self, cypher: str, **params) -> list[dict]:
         with self.driver.session() as session:
-            return [record.data() for record in session.run(query, **params)]
+            return [record.data() for record in session.run(cypher, params)]
 
     def close(self) -> None:
         self.driver.close()
