@@ -47,3 +47,5 @@
 - [ ] 5.1 Integration test suite (requires Neo4j; separate pytest marker)
 - [ ] 5.2 Update README with first real benchmark numbers
 - [ ] 5.3 Sync delta specs to main specs and archive this change (/opsx:archive)
+
+Next phases (queued changes, proposals written): `add-invalidation-ablation` (first — none vs functional vs llm-judged, measured), then `add-schema-induction` (gated on the ablation outcome).
