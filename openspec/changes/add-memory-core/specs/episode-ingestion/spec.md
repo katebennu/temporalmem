@@ -20,7 +20,7 @@ The system SHALL provide a `LongMemEvalSource` that parses a LongMemEval JSON fi
 
 ### Requirement: LLM fact extraction
 
-The system SHALL extract entities and subject–predicate–object facts from each episode using a schema-constrained LLM call (structured outputs), producing typed pydantic objects. Extraction SHALL capture, when stated, the date a fact became true.
+The system SHALL extract entities and subject–predicate–object facts from each episode using a schema-constrained LLM call (structured outputs), producing typed pydantic objects. Extraction SHALL use consistent snake_case predicates, SHALL NOT emit dates or adverbs as fact objects, SHALL capture the date a fact became true (`valid_at`) when stated or inferable — for acquisition/state-change events, the date the state began — and SHALL classify each fact as functional or multi-valued.
 
 #### Scenario: Extracting from a session
 - **WHEN** an episode containing "I moved to Amsterdam last month" (episode dated 2023-05-20) is extracted

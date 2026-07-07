@@ -12,6 +12,31 @@ from .graph.client import GraphClient
 from .sources.base import Episode, EpisodeSource
 
 
+FUNCTIONAL_PREDICATES = {
+    "lives_in": True,
+    "works_at": True,
+    "is_named": True,
+    "owns": False,
+    "purchased_from": False,
+    "visited": False,
+    "attended": False,
+    "plans_trip_to": False,
+    "plans_to_visit": False,
+    "prefers": False,
+    "likes": False,
+    "dislikes": False,
+    "has_skill": False,
+    "has_goal": False,
+    "related_to": False,
+}
+
+
+def is_functional(predicate: str, extracted_flag: bool) -> bool:
+    """Pinned classification for the canonical vocabulary; the LLM flag decides only
+    for unknown predicates (Haiku labels the flag inconsistently across sessions)."""
+    return FUNCTIONAL_PREDICATES.get(predicate, extracted_flag)
+
+
 def normalize(name: str) -> str:
     return " ".join(name.lower().split())
 
@@ -46,7 +71,11 @@ class Ingestor:
             if dry_run:
                 log(f"--- {episode.id} ({episode.occurred_at:%Y-%m-%d}) ---")
                 for fact in extraction.facts:
-                    log(f"  ({fact.subject}) -[{fact.predicate}]-> ({fact.object})  {fact.fact}")
+                    marker = "*" if is_functional(fact.predicate, fact.functional) else ""
+                    log(
+                        f"  ({fact.subject}) -[{fact.predicate}{marker}]-> ({fact.object})  "
+                        f"valid_at={fact.valid_at or '-'}  {fact.fact}"
+                    )
             else:
                 self._write(episode, extraction)
                 log(
@@ -104,7 +133,8 @@ class Ingestor:
             object_id = entity_ids[fact.object]
             valid_at = self._fact_valid_at(fact.valid_at, episode.occurred_at)
             key = fact_key(subject_id, fact.predicate, object_id)
-            self._invalidate_contradictions(subject_id, fact.predicate, object_id, valid_at)
+            if is_functional(fact.predicate, fact.functional):
+                self._invalidate_contradictions(subject_id, fact.predicate, object_id, valid_at)
             self.graph.run(
                 """MATCH (s:Entity {id: $subject_id}), (o:Entity {id: $object_id})
                    MERGE (s)-[r:RELATES_TO {key: $key}]->(o)

@@ -15,9 +15,10 @@
 - [x] 2.1 Extraction schemas + claude-haiku-4-5 extractor via structured outputs
 - [x] 2.2 Ingestor: episode → extraction → entity resolution → graph writes, idempotent, --dry-run
 - [x] 2.3 Contradiction invalidation (same subject+predicate, different object → set invalid_at)
-- [ ] 2.4 Verify ingestion end-to-end against one real LongMemEval haystack; eyeball graph in Neo4j Browser; iterate on extraction prompt using the oracle variant
-- [ ] 2.5 Batches API path for bulk ingestion (50% cost); keep sync path for --dry-run
-- [ ] 2.6 LLM tie-break for entity resolution when embedding similarity is near threshold
+- [x] 2.4 Extraction quality pass 1 (from oracle dry-run findings): canonical predicate vocabulary, no date/literal objects, valid_at for acquisition events, functional flag gating invalidation, valid_at shown in --dry-run
+- [ ] 2.5 Verify ingestion end-to-end against one real LongMemEval haystack; eyeball graph in Neo4j Browser; keep iterating on extraction prompt using the oracle variant
+- [ ] 2.6 Batches API path for bulk ingestion (50% cost); keep sync path for --dry-run
+- [ ] 2.7 LLM tie-break for entity resolution when embedding similarity is near threshold
 
 ## 3. Milestone 2 — Retrieval & agent
 

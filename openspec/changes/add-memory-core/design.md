@@ -21,7 +21,7 @@ Greenfield project. Goal: a local-first agentic memory system over 1M+ tokens of
 
 2. **Facts as relationships, not reified fact nodes.** `(:Entity)-[:RELATES_TO {predicate, fact, embedding, valid_at, invalid_at, episode_ids}]->(:Entity)` keeps traversal one hop per fact. Requires Neo4j ≥ 5.18 for relationship vector indexes — satisfied by 5.26. If relationship-index limits bite later, migrate to `(:Fact)` nodes in a new change.
 
-3. **Bi-temporal via invalidation, not deletion.** Contradiction detection runs at ingest time: new fact → fetch existing facts with same subject entity + predicate → Haiku judges compatibility → incompatible facts get `invalid_at`. Judged per-predicate, not globally, to bound cost.
+3. **Bi-temporal via invalidation, not deletion.** Contradiction detection runs at ingest time, deterministically: a new fact invalidates existing facts with the same subject + predicate but a different object — but only when the extractor marked the fact `functional` (single-valued relations like lives_in; multi-valued relations like owns or purchased_from must coexist). A code-level override map pins the classification for the canonical predicate vocabulary — the LLM flag decides only for unknown predicates, since Haiku labels the flag inconsistently across sessions. An LLM compatibility judge for paraphrase-level conflicts is deferred to a follow-up change.
 
 4. **Extraction: claude-haiku-4-5 + structured outputs (`messages.parse` with pydantic schemas); Batches API for bulk ingestion** (50% cost). claude-opus-4-8 reserved for the answering agent and (optionally) judge. Rationale: extraction is high-volume schema-filling; the agent loop is where intelligence pays.
 
@@ -35,7 +35,7 @@ Greenfield project. Goal: a local-first agentic memory system over 1M+ tokens of
 
 - [Extraction quality caps everything downstream] → Keep per-episode extraction inspectable (`temporalmem ingest --dry-run` prints extractions); iterate on the prompt against the oracle variant first.
 - [Entity dedup drift (over- or under-merging)] → Threshold configurable; resolution decisions logged; oracle runs make dedup errors visible early.
-- [Haiku contradiction judging misses paraphrase conflicts] → Scope: only same-subject+predicate pairs are compared; accept misses in v1, measure via knowledge-update question type.
+- [Deterministic contradiction detection misses paraphrase conflicts and depends on the extractor's functional/multi-valued classification] → Scope: only same-subject+predicate pairs are compared; accept misses in v1, measure via knowledge-update question type.
 - [Relationship vector index maturity] → Pin Neo4j 5.26 LTS; fallback documented (Fact nodes).
 - [API cost surprises] → Batches by default for ingestion; harness defaults to 20-question subsets; token usage recorded per run.
 - [LongMemEval format drift between variants] → Adapter validates required fields and fails loudly with the offending question id.

@@ -12,7 +12,7 @@ The system SHALL store memory in Neo4j using `(:Entity)` nodes (name, normalized
 
 ### Requirement: Bi-temporal fact validity
 
-Fact relationships SHALL carry `valid_at` (when the fact became true, if known) and `invalid_at` (when it stopped being true; null while current). When a newly ingested fact contradicts an existing fact (same subject and predicate, incompatible object), the system SHALL set `invalid_at` on the old fact rather than deleting it.
+Fact relationships SHALL carry `valid_at` (when the fact became true, if known) and `invalid_at` (when it stopped being true; null while current). Facts SHALL be classified at extraction time as functional (only one object can hold at a time for the subject and predicate, e.g. lives_in) or multi-valued (e.g. owns, purchased_from). When a newly ingested **functional** fact contradicts an existing fact (same subject and predicate, different object), the system SHALL set `invalid_at` on the old fact rather than deleting it. Multi-valued facts MUST NOT invalidate each other.
 
 #### Scenario: Knowledge update
 - **WHEN** the graph holds ("user", "lives in", "Berlin") and a later episode yields ("user", "lives in", "Amsterdam")
@@ -21,6 +21,10 @@ Fact relationships SHALL carry `valid_at` (when the fact became true, if known) 
 #### Scenario: Point-in-time query
 - **WHEN** memory is queried "as of" a date between the Berlin fact's valid_at and invalid_at
 - **THEN** the Berlin fact is returned as current and the Amsterdam fact is not
+
+#### Scenario: Multi-valued facts coexist
+- **WHEN** the graph holds ("user", "purchased_from", "Best Buy") and a later episode yields ("user", "purchased_from", "Amazon")
+- **THEN** both facts remain current (neither receives `invalid_at`)
 
 ### Requirement: Entity resolution
 

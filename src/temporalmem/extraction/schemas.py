@@ -22,6 +22,13 @@ class ExtractedFact(BaseModel):
         default=None,
         description="ISO date (YYYY-MM-DD) the fact became true, if stated or inferable from context, else null",
     )
+    functional: bool = Field(
+        description=(
+            "True if only one object can be true at a time for this subject and predicate "
+            "(lives_in, works_at, is_named); false for multi-valued relations "
+            "(owns, visited, purchased_from, attended)"
+        )
+    )
 
 
 class Extraction(BaseModel):

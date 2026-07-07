@@ -15,8 +15,19 @@ Rules:
 - Skip chit-chat, assistant boilerplate, and generic knowledge that isn't about the user's world.
 - Resolve relative dates ("last month", "next Friday") against the session date into absolute
   ISO dates, both in the fact sentence and in valid_at.
+- Predicates: snake_case, present tense, and consistent — reuse the same predicate for the
+  same kind of relation every time. Prefer this canonical set when it fits: owns, lives_in,
+  works_at, purchased_from, plans_trip_to, plans_to_visit, visited, attended, prefers,
+  likes, dislikes, has_skill, has_goal, related_to.
+- Objects must be entity names (people, places, organizations, products, events) — never
+  dates, amounts, or adverbs. Put WHEN into valid_at and the details into the fact sentence.
+  For acquisition or state-change events (purchases, moves, job changes), valid_at is the
+  date the state began, e.g. owns + valid_at = purchase date.
+- Set functional=true only when a new object would replace the old one (a person has one
+  home, one employer); functional=false when multiple objects can hold at once (owns,
+  visited, purchased_from).
 - Every fact's subject and object should also appear in entities, unless the object is a plain
-  literal value (a number, a date, a title).
+  literal value (a number or a title).
 - Prefer several small atomic facts over one compound fact."""
 
 
