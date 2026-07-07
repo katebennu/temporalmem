@@ -26,7 +26,14 @@ def main() -> None:
 
     run = sub.add_parser("eval", help="Run the LongMemEval harness")
     run.add_argument("--data", required=True)
-    run.add_argument("--limit", type=int, help="Number of questions to run")
+    run.add_argument("--limit", type=int, help="First N questions (file order)")
+    run.add_argument("--sample", type=int, help="Stratified sample of N questions across question types")
+    run.add_argument("--seed", type=int, default=42, help="Seed for --sample")
+    run.add_argument(
+        "--strategy",
+        choices=["none", "functional", "llm"],
+        help="Invalidation strategy for ingestion (default: config)",
+    )
     run.add_argument("--question-id", action="append")
     run.add_argument("--out", default="results/run.json")
     run.add_argument("--skip-ingest", action="store_true")
@@ -34,6 +41,11 @@ def main() -> None:
     score = sub.add_parser("score", help="Judge and report a results file")
     score.add_argument("--data", required=True)
     score.add_argument("--out", default="results/run.json")
+
+    compare = sub.add_parser("compare", help="Side-by-side accuracy across scored results files")
+    compare.add_argument("--results", nargs="+", required=True, help="Two or more scored results files")
+
+    sub.add_parser("wipe-db", help="Delete all graph data (keeps indexes) — needed between ablation arms")
 
     args = parser.parse_args()
     handler = {
@@ -43,6 +55,8 @@ def main() -> None:
         "ask": _ask,
         "eval": _eval,
         "score": _score,
+        "compare": _compare,
+        "wipe-db": _wipe_db,
     }[args.command]
     handler(args)
 
@@ -95,7 +109,14 @@ def _eval(args) -> None:
     question_ids = set(args.question_id) if args.question_id else None
     with GraphClient() as graph:
         harness = EvalHarness(args.data, graph, out_path=args.out)
-        harness.run(limit=args.limit, question_ids=question_ids, skip_ingest=args.skip_ingest)
+        harness.run(
+            limit=args.limit,
+            sample=args.sample,
+            seed=args.seed,
+            strategy=args.strategy,
+            question_ids=question_ids,
+            skip_ingest=args.skip_ingest,
+        )
 
 
 def _score(args) -> None:
@@ -104,6 +125,21 @@ def _score(args) -> None:
 
     with GraphClient() as graph:
         EvalHarness(args.data, graph, out_path=args.out).score()
+
+
+def _compare(args) -> None:
+    from .evaluation.harness import compare_results
+
+    compare_results(args.results)
+
+
+def _wipe_db(args) -> None:
+    from .graph import GraphClient
+
+    with GraphClient() as graph:
+        counts = graph.run("MATCH (n) RETURN count(n) AS n")[0]
+        graph.run("MATCH (n) DETACH DELETE n")
+    print(f"wiped {counts['n']} nodes (indexes kept)")
 
 
 if __name__ == "__main__":

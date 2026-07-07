@@ -19,6 +19,10 @@ class Settings:
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dims: int = 384
 
+    invalidation_strategy: str = os.getenv("INVALIDATION_STRATEGY", "functional")
+    supersession_similarity_threshold: float = 0.55
+    supersession_max_candidates: int = 5
+
     entity_match_threshold: float = 0.85
     rrf_k: int = 60
     expansion_hops: int = 1

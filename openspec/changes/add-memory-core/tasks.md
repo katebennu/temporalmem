@@ -39,7 +39,7 @@
 - [ ] 4.3 Naive vector-RAG baseline behind the same backend interface (spec: evaluation / Baseline comparison)
 - [ ] 4.4 Record token usage per run for cost tracking
 - [ ] 4.5 Full A/B report: graph memory vs baseline on a fixed subset, per question type
-- [ ] 4.6 Stratified --sample flag for eval (oracle file is grouped by type; --limit N takes only temporal-reasoning)
+- [x] 4.6 Stratified --sample flag for eval (implemented under add-invalidation-ablation build: --sample/--seed round-robin across question types)
 - [x] 4.7 Re-run the same 20 questions after 2.8 + 3.6 (results/run2.json): **0.90 vs 0.85 baseline** — both targeted misses fixed (Rachel start date extracted; NovaTech career math), charity-count still missed, one regression (got-first interpreted as order date; → 3.7)
 
 ## 5. Wrap-up

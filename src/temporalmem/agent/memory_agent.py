@@ -62,16 +62,32 @@ TOOLS = [
 ]
 
 
+def _result_line(result: SearchResult, prefix: str = "- ") -> str:
+    window = f"valid {result.valid_at or '?'} to {result.invalid_at or 'present'}"
+    return (
+        f"{prefix}{result.fact} ({result.subject} -[{result.predicate}]-> {result.object}; "
+        f"{window}; episodes: {', '.join(result.episode_ids)})"
+    )
+
+
 def format_results(results: list[SearchResult]) -> str:
+    """Group conflicting facts (same subject + predicate) into a valid_at-ordered timeline
+    so the agent sees state changes as a sequence rather than scattered contradictions."""
     if not results:
         return "No matching facts in memory."
-    lines = []
+    groups: dict[tuple[str, str], list[SearchResult]] = {}
     for result in results:
-        window = f"valid {result.valid_at or '?'} to {result.invalid_at or 'present'}"
-        lines.append(
-            f"- {result.fact} ({result.subject} -[{result.predicate}]-> {result.object}; "
-            f"{window}; episodes: {', '.join(result.episode_ids)})"
-        )
+        groups.setdefault((result.subject, result.predicate), []).append(result)
+    ordered = sorted(groups.values(), key=lambda group: max(r.score for r in group), reverse=True)
+    lines = []
+    for group in ordered:
+        if len(group) == 1:
+            lines.append(_result_line(group[0]))
+            continue
+        subject, predicate = group[0].subject, group[0].predicate
+        lines.append(f"- Timeline for {subject} -[{predicate}]-> (oldest first):")
+        for result in sorted(group, key=lambda r: r.valid_at or ""):
+            lines.append(_result_line(result, prefix="    * "))
     return "\n".join(lines)
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -52,6 +53,25 @@ def judge(
     return verdict.strip().lower().startswith("correct")
 
 
+def stratified_sample(questions: list[Question], n: int, seed: int = 42) -> list[Question]:
+    """Round-robin sample across question types, deterministic for a given seed."""
+    by_type: dict[str, list[Question]] = defaultdict(list)
+    for question in questions:
+        by_type[question.question_type].append(question)
+    rng = random.Random(seed)
+    for pool in by_type.values():
+        rng.shuffle(pool)
+    types = sorted(by_type)
+    sampled: list[Question] = []
+    index = 0
+    while len(sampled) < n and any(by_type[qtype] for qtype in types):
+        pool = by_type[types[index % len(types)]]
+        if pool:
+            sampled.append(pool.pop())
+        index += 1
+    return sampled
+
+
 class EvalHarness:
     """Runs LongMemEval questions end-to-end and scores them with an LLM judge.
 
@@ -74,14 +94,20 @@ class EvalHarness:
     def run(
         self,
         limit: int | None = None,
+        sample: int | None = None,
+        seed: int = 42,
+        strategy: str | None = None,
         question_ids: set[str] | None = None,
         skip_ingest: bool = False,
         log=print,
     ) -> list[dict]:
         source = LongMemEvalSource(self.dataset_path, question_ids)
         questions = list(source.questions())
-        if limit is not None:
+        if sample is not None:
+            questions = stratified_sample(questions, sample, seed)
+        elif limit is not None:
             questions = questions[:limit]
+        strategy = strategy or settings.invalidation_strategy
 
         results = self._load_results()
         done = {record["question_id"] for record in results}
@@ -92,7 +118,7 @@ class EvalHarness:
                 continue
             if not skip_ingest:
                 haystack = LongMemEvalSource(self.dataset_path, {question.question_id})
-                Ingestor(self.graph).ingest(haystack, log=log)
+                Ingestor(self.graph, strategy=strategy).ingest(haystack, log=log)
             agent = MemoryAgent(self.graph, client=self.client)
             started = time.monotonic()
             hypothesis = agent.answer(question.question, question.question_date)
@@ -103,6 +129,7 @@ class EvalHarness:
                     "question": question.question,
                     "gold": question.answer,
                     "hypothesis": hypothesis,
+                    "strategy": strategy,
                     "latency_s": round(time.monotonic() - started, 2),
                 }
             )
@@ -148,3 +175,34 @@ def _accuracy(verdicts: list[bool]) -> float | None:
     if not verdicts:
         return None
     return round(sum(verdicts) / len(verdicts), 3)
+
+
+def compare_results(paths: list[str | Path], log=print) -> dict:
+    """Side-by-side per-type accuracy across scored results files (one per strategy arm)."""
+    columns: dict[str, dict[str, float | None]] = {}
+    for path in paths:
+        records = json.loads(Path(path).read_text())
+        unjudged = [record for record in records if "correct" not in record]
+        if unjudged:
+            log(f"warning: {len(unjudged)} unjudged records in {path} — run score first; skipping them")
+        label = records[0].get("strategy", Path(path).stem) if records else Path(path).stem
+        per_type: dict[str, list[bool]] = defaultdict(list)
+        for record in records:
+            if "correct" in record:
+                per_type[record["question_type"]].append(record["correct"])
+        column = {qtype: _accuracy(verdicts) for qtype, verdicts in per_type.items()}
+        column["overall"] = _accuracy([v for verdicts in per_type.values() for v in verdicts])
+        columns[label] = column
+
+    rows = sorted({qtype for column in columns.values() for qtype in column} - {"overall"})
+    rows.append("overall")
+    width = max((len(row) for row in rows), default=8) + 2
+    header = " " * width + "  ".join(f"{label:>12}" for label in columns)
+    log(header)
+    for row in rows:
+        cells = "  ".join(
+            f"{columns[label].get(row):>12}" if columns[label].get(row) is not None else f"{'—':>12}"
+            for label in columns
+        )
+        log(f"{row:<{width}}{cells}")
+    return columns
