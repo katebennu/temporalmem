@@ -54,6 +54,38 @@ uv run temporalmem score --data data/longmemeval/longmemeval_s_cleaned.json
 Cost note: ingestion uses claude-haiku-4-5; a full LongMemEval_M haystack is roughly a couple
 of dollars. Develop against single haystacks and small `--limit` values.
 
+## Point it at your own Claude Code sessions
+
+The benchmark proves the mechanism; this is the real task. Ingest your own Claude Code
+transcripts and ask your project's history:
+
+```bash
+uv run temporalmem ingest --source claude-code \
+    --data ~/.claude/projects/<your-project-dir>    # or a single session .jsonl
+uv run temporalmem ask --question "What was this project originally named, and why was it renamed?"
+```
+
+Real answers from ingesting this repo's own development sessions (7 sessions → 18 episodes,
+207 entities, 226 facts):
+
+> **Q:** What was this project originally named, and why was it renamed?
+> **A:** The project was originally named **engram**. It was renamed because Kate discovered
+> the name was already taken by a similar, popular project (a 4.9k-star repository). After
+> checking availability on GitHub and PyPI, she chose **temporalmem** instead.
+
+> **Q:** What entity resolution bug was discovered during eval runs?
+> **A:** An "HP Pavilion desktop" got resolved to the "Dell XPS 13" node — the 0.85 cosine
+> threshold was too permissive for similar-but-distinct product names. *Proposed fix (noted
+> but not yet applied): restrict matching by entity_type and/or raise the threshold.*
+
+That last italic line is the bi-temporal property demonstrating itself: the fix *has* landed
+since, but in a session ingested later — the memory answers from what it knew at the time,
+and a re-ingest of newer sessions updates it.
+
+Only conversational text is ingested — tool outputs, diffs, thinking blocks, and file
+contents are filtered out — and transcripts never leave your machine except as extraction
+calls to the Anthropic API, the same trust boundary the sessions themselves already have.
+
 ## Key design points
 
 - **Pluggable sources.** Everything downstream consumes the `EpisodeSource` protocol

@@ -20,10 +20,13 @@
 
 ## 3. Demo (the actual showcase)
 
-- [ ] 3.1 Ingest this repo's own Claude Code sessions into a fresh graph (after the current
-  eval run completes — shared Neo4j)
-- [ ] 3.2 Curate 6–8 questions about the project's history (rename, scores, ablation
-  findings, design decisions) and verify answers via `temporalmem ask`
-- [ ] 3.3 Inspect entity timelines in the Streamlit inspector; capture screenshots
-- [ ] 3.4 README section: "Point it at your own Claude Code sessions" with commands and
-  a privacy note (local transcripts; extraction calls the Anthropic API)
+- [x] 3.1 Ingest this repo's own Claude Code sessions into a fresh graph: 7 sessions →
+  18 episodes, 207 entities, 226 facts
+- [x] 3.2 Curated 7 questions (rename, run-2 fixes, ablation outcome, stack, over-merge bug,
+  Graphiti diff, inspector UI) — all answered correctly via `temporalmem ask`; the over-merge
+  answer correctly reported the fix as "not yet applied" as of the ingested sessions
+  (bi-temporal correctness, quoted in the README)
+- [ ] 3.3 Inspect entity timelines in the Streamlit inspector; capture screenshots (Kate —
+  needs a browser)
+- [x] 3.4 README section: "Point it at your own Claude Code sessions" with commands,
+  verified Q&A, and the privacy note
