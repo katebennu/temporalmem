@@ -32,6 +32,8 @@ FUNCTIONAL_PREDICATES = {
     "dislikes": False,
     "has_skill": False,
     "has_goal": False,
+    "recommended": False,
+    "suggested": False,
     "related_to": False,
 }
 
@@ -59,6 +61,15 @@ class SupersessionVerdict(BaseModel):
 
 def normalize(name: str) -> str:
     return " ".join(name.lower().split())
+
+
+def types_compatible(a: str | None, b: str | None) -> bool:
+    """Whether two entity_type labels may refer to the same entity.
+    Missing or 'other' is a wildcard; two concrete types must agree —
+    prevents cross-type vector merges (a person swallowing a place)."""
+    if not a or not b or a == "other" or b == "other":
+        return True
+    return a == b
 
 
 def fact_key(subject_id: str, predicate: str, object_id: str) -> str:
@@ -133,7 +144,7 @@ class Ingestor:
 
         for name in names:
             embedding = self.embedder.embed_one(name)
-            entity_id = self._resolve_entity(name, embedding)
+            entity_id = self._resolve_entity(name, embedding, types.get(name, "other"))
             entity_ids[name] = entity_id
             self.graph.run(
                 """MERGE (n:Entity {id: $id})
@@ -193,7 +204,7 @@ class Ingestor:
                 pass
         return fallback
 
-    def _resolve_entity(self, name: str, embedding: list[float]) -> str:
+    def _resolve_entity(self, name: str, embedding: list[float], entity_type: str = "other") -> str:
         rows = self.graph.run(
             "MATCH (n:Entity {normalized: $normalized}) RETURN n.id AS id LIMIT 1",
             normalized=normalize(name),
@@ -201,15 +212,17 @@ class Ingestor:
         if rows:
             return rows[0]["id"]
         rows = self.graph.run(
-            """CALL db.index.vector.queryNodes('entity_embedding', 1, $embedding)
+            """CALL db.index.vector.queryNodes('entity_embedding', 3, $embedding)
                YIELD node, score
                WHERE score >= $threshold
-               RETURN node.id AS id""",
+               RETURN node.id AS id, node.entity_type AS entity_type
+               ORDER BY score DESC""",
             embedding=embedding,
             threshold=self.entity_match_threshold,
         )
-        if rows:
-            return rows[0]["id"]
+        for row in rows:
+            if types_compatible(entity_type, row["entity_type"]):
+                return row["id"]
         return uuid.uuid4().hex
 
     def _invalidate_llm(

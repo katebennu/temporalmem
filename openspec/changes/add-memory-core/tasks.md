@@ -20,8 +20,8 @@
 - [ ] 2.6 Batches API path for bulk ingestion (50% cost); keep sync path for --dry-run
 - [ ] 2.7 LLM tie-break for entity resolution when embedding similarity is near threshold
 - [x] 2.8 Extraction pass 2: dated events (attended / participated_in / started_working_at / started_working_with + valid_at) — participation and employment-start dates were the missing facts in eval run 1
-- [ ] 2.9 Extraction pass 3 (ablation finding): assistant-side facts under-captured — single-session-assistant scored 0.4 in every ablation arm; extraction prompt focuses on "the user's world" and drops information the assistant provided
-- [ ] 2.10 Entity resolution over-merge found in run 2: "HP Pavilion desktop" resolved to the "Dell XPS 13" node at threshold 0.85 (product names are embedding-dense) — restrict vector match to same entity_type and/or raise threshold; feeds 2.7
+- [x] 2.9 Extraction pass 3 (ablation finding): assistant-side facts under-captured — prompt now extracts assistant recommendations/suggestions (subject "assistant", predicates recommended/suggested). Verified in run3: single-session-assistant 0.4 → 0.8
+- [x] 2.10 Entity resolution over-merge: threshold raised 0.85 → 0.90 and vector match gated by `types_compatible` (concrete entity_types must agree; 'other'/missing is a wildcard); checks top-3 candidates. Feeds 2.7
 
 ## 3. Milestone 2 — Retrieval & agent
 
@@ -31,7 +31,7 @@
 - [ ] 3.4 Validate retrieval quality on the oracle variant: answer-session recall@k before agent quality
 - [ ] 3.5 Tune expansion hops/decay and search limits against a 20-question subset
 - [x] 3.6 Agent prompt: explicit inspect_episodes trigger when facts lack a needed detail (all 3 misses in run 1 had the answer in raw episode text, agent never inspected)
-- [ ] 3.7 Acquisition semantics guidance (run-2 regression): "got/acquired X" means when ownership began (receipt/delivery), not order date — agent prompt, plus an extraction note for pre-order vs arrival
+- [x] 3.7 Acquisition semantics guidance (run-2 regression): "got/acquired X" means when ownership began (receipt/delivery), not order date — added to agent prompt + extraction note for pre-order vs arrival
 
 ## 4. Milestone 3 — Evaluation
 
@@ -42,6 +42,7 @@
 - [ ] 4.5 Full A/B report: graph memory vs baseline on a fixed subset, per question type
 - [x] 4.6 Stratified --sample flag for eval (implemented under add-invalidation-ablation build: --sample/--seed round-robin across question types)
 - [x] 4.7 Re-run the same 20 questions after 2.8 + 3.6 (results/run2.json): **0.90 vs 0.85 baseline** — both targeted misses fixed (Rachel start date extracted; NovaTech career math), charity-count still missed, one regression (got-first interpreted as order date; → 3.7)
+- [x] 4.8 Verification run after 2.9 + 2.10 + 3.7 (results/run3.json, 30 stratified, seed 42, functional): **0.867 vs 0.833 baseline** — single-session-assistant 0.4 → 0.8 (the targeted fix, only above-noise move); multi-session 0.6 → 0.4 (one question, within noise; both misses are counting/interpretation with all facts retrieved, not retrieval failures)
 
 ## 5. Wrap-up
 

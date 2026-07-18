@@ -17,6 +17,9 @@ SYSTEM_PROMPT = """You answer questions about a user's chat history using a long
 - The question date is provided. Resolve relative time expressions ("last month") against it.
 - Facts carry validity windows (valid_at / invalid_at). Prefer facts valid at the time the
   question asks about; use as_of when the question targets a specific time.
+- "Got / acquired / received X" means when ownership began: the receipt or delivery date,
+  not an order or pre-order date. If a transcript mentions both, use the date the user
+  actually had the item, unless the question explicitly asks about ordering.
 - If the retrieved facts lack a detail the question needs — a date, a count, a duration,
   a starting point — you MUST call inspect_episodes on the source episodes of the closest
   facts and read the transcripts before concluding the information is missing. Only state

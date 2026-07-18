@@ -23,7 +23,7 @@ class Settings:
     supersession_similarity_threshold: float = 0.55
     supersession_max_candidates: int = 5
 
-    entity_match_threshold: float = 0.85
+    entity_match_threshold: float = 0.90
     rrf_k: int = 60
     expansion_hops: int = 1
     expansion_decay: float = 0.5

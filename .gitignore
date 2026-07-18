@@ -8,3 +8,4 @@ data/
 results/
 uv.lock
 drafts/
+.DS_Store
