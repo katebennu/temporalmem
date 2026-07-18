@@ -10,9 +10,19 @@ def main() -> None:
 
     sub.add_parser("setup-db", help="Create Neo4j constraints and indexes (idempotent)")
 
-    ingest = sub.add_parser("ingest", help="Ingest a LongMemEval dataset into the graph")
-    ingest.add_argument("--data", required=True, help="Path to a LongMemEval JSON file")
-    ingest.add_argument("--question-id", action="append", help="Limit to specific question id(s)")
+    ingest = sub.add_parser("ingest", help="Ingest an episode source into the graph")
+    ingest.add_argument(
+        "--source",
+        choices=["longmemeval", "claude-code"],
+        default="longmemeval",
+        help="Episode source type (default: longmemeval)",
+    )
+    ingest.add_argument(
+        "--data",
+        required=True,
+        help="LongMemEval JSON file, or a Claude Code transcript directory / .jsonl session file",
+    )
+    ingest.add_argument("--question-id", action="append", help="Limit to specific question id(s) (longmemeval only)")
     ingest.add_argument("--dry-run", action="store_true", help="Print extractions without writing")
 
     search = sub.add_parser("search", help="Query the memory graph directly")
@@ -72,13 +82,23 @@ def _setup_db(args) -> None:
 def _ingest(args) -> None:
     from .graph import GraphClient
     from .ingest import Ingestor
-    from .sources import LongMemEvalSource
 
-    question_ids = set(args.question_id) if args.question_id else None
-    source = LongMemEvalSource(args.data, question_ids)
+    source = build_source(args.source, args.data, args.question_id)
     with GraphClient() as graph:
         count = Ingestor(graph).ingest(source, dry_run=args.dry_run)
     print(f"processed {count} episodes")
+
+
+def build_source(source_type: str, data: str, question_ids: list[str] | None):
+    if source_type == "claude-code":
+        if question_ids:
+            raise SystemExit("--question-id only applies to --source longmemeval")
+        from .sources.claudecode import ClaudeCodeSource
+
+        return ClaudeCodeSource(data)
+    from .sources import LongMemEvalSource
+
+    return LongMemEvalSource(data, set(question_ids) if question_ids else None)
 
 
 def _search(args) -> None:
